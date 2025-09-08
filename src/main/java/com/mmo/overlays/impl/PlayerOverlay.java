@@ -12,12 +12,10 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.ui.overlay.*;
 import net.runelite.client.util.ImageUtil;
 
-import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
-import java.io.IOException;
 
 @Slf4j
 public class PlayerOverlay extends HeadOverlay {
@@ -42,6 +40,8 @@ public class PlayerOverlay extends HeadOverlay {
 
     private int dialogId = 5000;
 
+    private boolean isHidden = false;
+
 
     @Inject
     private PlayerOverlay() {
@@ -65,10 +65,64 @@ public class PlayerOverlay extends HeadOverlay {
     @Override
     public void setPreferredPosition(OverlayPosition preferredPosition) {
         super.setPreferredPosition(preferredPosition);
-        createHeadWidget();
+        drawHeadWidget();
 
     }
 
+    @Override
+    public void setPreferredLocation(java.awt.Point preferredLocation) {
+        super.setPreferredLocation(preferredLocation);
+        drawHeadWidget();
+    }
+
+    @Override
+    public Dimension render(Graphics2D graphics) {
+        if(isHidden || !parentSet) {
+            return new Dimension(0,0);
+        }
+
+        float scale = (float) config.playerFrameScale() / 100;
+
+        drawPortrait(graphics, scale);
+        drawHpBar(graphics, scale);
+        drawPrayerBar(graphics, scale);
+        graphics.drawImage(headContainer, 0, 0, (int) (headContainer.getWidth() * scale), (int) (headContainer.getHeight() * scale), null);
+        drawCombatLevel(graphics, scale);
+        return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
+    }
+
+    @Override
+    public void setParentTarget(int parentId, int childId) {
+        super.setParentTarget(parentId, childId);
+
+        if(parent == null) {
+            parent = client.getWidget(currentParent, currentChildIndex);
+        }
+
+        if(parent != null && headWidget == null) {
+            var loc = getPreferredLocation();
+            float scale = ((float) config.playerFrameScale() / 100);
+
+            headWidget = parent.createChild(-1, WidgetType.MODEL);
+            headWidget.setType(6);
+            headWidget.setContentType(0);
+            headWidget.setItemId(-1);
+            headWidget.setItemQuantity(0);
+            headWidget.setItemQuantityMode(2);
+            headWidget.setModelId(dialogId);
+            headWidget.setModelType(3);
+            headWidget.setSpriteId(-1);
+            headWidget.setOriginalX((int) (loc.x + (config.playerHeadXOffset()) * scale));
+            headWidget.setOriginalY((int) (loc.y + (config.playerHeadYOffset()) * scale));
+            headWidget.setOriginalWidth((int) (32 * scale));
+            headWidget.setOriginalHeight((int) (32 * scale));
+            headWidget.setModelZoom((int) (1200 / scale));
+            headWidget.setRotationX(0);
+            headWidget.setAnimationId(588);
+            headWidget.setRotationZ(config.playerRotation());
+            headWidget.revalidate();
+        }
+    }
 
     public void loadImage() {
         try {
@@ -91,48 +145,18 @@ public class PlayerOverlay extends HeadOverlay {
         }
     }
 
+    public void setHidden(boolean isHidden) {
+        this.isHidden = isHidden;
 
-    @Override
-    public Dimension render(Graphics2D graphics) {
-        float scale = (float) config.playerFrameScale() / 100;
-
-        drawPortrait(graphics, scale);
-        drawHpBar(graphics, scale);
-        drawPrayerBar(graphics, scale);
-        graphics.drawImage(headContainer, 0, 0, (int) (headContainer.getWidth() * scale), (int) (headContainer.getHeight() * scale), null);
-        drawCombatLevel(graphics, scale);
-        return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
-    }
-
-    private void drawPortrait(Graphics2D graphics, float scale) {
-        if (myImage == null || headWidget == null)
-            return;
-
-        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        if (headWidget == null || headWidget.isHidden()) {
-
-            if (lastRender != null) {
-                graphics.drawImage(
-                        myImage,
-                        lastRender.x,
-                        lastRender.y,
-                        (int) (myImage.getWidth() * scale),
-                        (int) (myImage.getHeight() * scale), null);
-            }
-
-            return;
+        if(headWidget != null) {
+            headWidget.setHidden(isHidden);
         }
-
-        graphics.drawImage(myImage, 0, 0, (int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale), null);
-
     }
 
-    @Override
-    public void setPreferredLocation(java.awt.Point preferredLocation) {
-        super.setPreferredLocation(preferredLocation);
-        createHeadWidget();
+    public void forceRedraw() {
+        dialogId++;
+        headWidget.setModelId(dialogId);
+        drawHeadWidget();
     }
 
     private void drawHpBar(Graphics2D graphics, float scale) {
@@ -228,51 +252,42 @@ public class PlayerOverlay extends HeadOverlay {
         graphics.drawString("" + combatLevel, (int) (32 * scale), (int) (97 * scale));  // offset by 1-2 pixels
     }
 
-    public void createHeadWidget() {
+    private void drawPortrait(Graphics2D graphics, float scale) {
+        if (myImage == null || headWidget == null)
+            return;
+
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        if (headWidget == null || headWidget.isHidden()) {
+
+            if (lastRender != null) {
+                graphics.drawImage(
+                        myImage,
+                        lastRender.x,
+                        lastRender.y,
+                        (int) (myImage.getWidth() * scale),
+                        (int) (myImage.getHeight() * scale), null);
+            }
+
+            return;
+        }
+
+        graphics.drawImage(myImage, 0, 0, (int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale), null);
+    }
+
+    private void drawHeadWidget() {
         clientThread.invoke(() ->
         {
             var loc = getPreferredLocation();
 
-            if (!parentSet) {
-                return;
-            }
-
-
-            if (parent == null) {
-                Widget p = client.getWidget(currentParent, currentChildIndex);
-
-                if (p == null) {
-                    return;
-                }
-
-                parent = p;
-            }
-
-            dialogId++;
-
-            if (headWidget == null) {
-                headWidget = parent.createChild(-1, WidgetType.MODEL);
-            }
-
             float scale = ((float) config.playerFrameScale() / 100);
-
-            headWidget.setType(6);
-            headWidget.setContentType(0);
-            headWidget.setItemId(-1);
-            headWidget.setItemQuantity(0);
-            headWidget.setItemQuantityMode(2);
-            headWidget.setModelId(dialogId);
-            headWidget.setModelType(3);
-            headWidget.setSpriteId(-1);
 
             headWidget.setOriginalX((int) (loc.x + (config.playerHeadXOffset()) * scale));
             headWidget.setOriginalY((int) (loc.y + (config.playerHeadYOffset()) * scale));
             headWidget.setOriginalWidth((int) (32 * scale));
             headWidget.setOriginalHeight((int) (32 * scale));
-
             headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
-            headWidget.setRotationX(0);
-            headWidget.setAnimationId(588); // 588 was what we had // 614 is angry
             headWidget.setRotationZ(config.playerRotation()); // 1882 was what we had before
 
             headWidget.revalidate();

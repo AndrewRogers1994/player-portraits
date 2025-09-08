@@ -60,6 +60,11 @@ public class MmoHud extends Plugin {
         int groupId = event.getGroupId();
         int packed = -1;
 
+        if(groupId == InterfaceID.POH_LOADING) {
+            playerOverlay.setHidden(true);
+            return;
+        }
+
         if (groupId == InterfaceID.TOPLEVEL_OSRS_STRETCH) {
             packed = InterfaceID.ToplevelOsrsStretch.GAMEFRAME;
         } else if (groupId == InterfaceID.TOPLEVEL_PRE_EOC) {
@@ -73,7 +78,16 @@ public class MmoHud extends Plugin {
         if (child != -1) {
             playerOverlay.setParentTarget(groupId, child);
             targetOverlay.setParentTarget(groupId, child);
-            playerOverlay.createHeadWidget();
+        }
+    }
+
+    @Subscribe
+    public void onWidgetClosed(WidgetClosed event)
+    {
+        int groupId = event.getGroupId();
+
+        if (groupId == InterfaceID.POH_LOADING) {
+            playerOverlay.setHidden(false);
         }
     }
 
@@ -86,7 +100,7 @@ public class MmoHud extends Plugin {
     @Subscribe
     public void onConfigChanged(ConfigChanged event) {
         if (event.getKey().contains("player")) {
-            playerOverlay.createHeadWidget();
+            playerOverlay.forceRedraw();
         }
 
         if (event.getKey().contains("enemyRotation")) {
@@ -106,7 +120,7 @@ public class MmoHud extends Plugin {
         Item helmet = equipment[EquipmentInventorySlot.HEAD.getSlotIdx()];
 
         if (previousHelment == null && helmet != null || previousHelment != null && helmet == null || previousHelment.getId() != helmet.getId()) {
-            playerOverlay.createHeadWidget();
+            playerOverlay.forceRedraw();
             previousHelment = helmet;
         }
     }
