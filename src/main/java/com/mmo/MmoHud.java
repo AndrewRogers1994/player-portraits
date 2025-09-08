@@ -1,11 +1,11 @@
-package com.playerportraits;
+package com.mmo;
 
 import com.google.inject.Provides;
 
 import javax.inject.Inject;
 
-import com.playerportraits.overlays.impl.PlayerOverlay;
-import com.playerportraits.overlays.impl.TargetOverlay;
+import com.mmo.overlays.impl.PlayerOverlay;
+import com.mmo.overlays.impl.TargetOverlay;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
@@ -17,16 +17,18 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
-@Slf4j
 @PluginDescriptor(
-        name = "Player Portraits"
+   name = "MMO Hud",
+   description = "Adds a MMO Type Hud",
+   tags = {"mmo", "hud", "overlay", "health", "player", "npc", "head"}
 )
-public class PlayerPortraits extends Plugin {
+@Slf4j
+public class MmoHud extends Plugin {
     @Inject
     private Client client;
 
     @Inject
-    private PlayerPortraitsConfig config;
+    private MmoHudConfig config;
 
     @Inject
     private OverlayManager overlayManager;
@@ -137,7 +139,7 @@ public class PlayerPortraits extends Plugin {
     }
 
     @Provides
-    PlayerPortraitsConfig provideConfig(ConfigManager configManager) {
-        return configManager.getConfig(PlayerPortraitsConfig.class);
+    MmoHudConfig provideConfig(ConfigManager configManager) {
+        return configManager.getConfig(MmoHudConfig.class);
     }
 }

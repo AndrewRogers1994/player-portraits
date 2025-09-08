@@ -1,7 +1,7 @@
-package com.playerportraits.overlays.impl;
+package com.mmo.overlays.impl;
 
-import com.playerportraits.PlayerPortraitsConfig;
-import com.playerportraits.overlays.HeadOverlay;
+import com.mmo.MmoHudConfig;
+import com.mmo.overlays.HeadOverlay;
 import net.runelite.api.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
@@ -68,7 +68,7 @@ public class TargetOverlay extends HeadOverlay {
     }
 
     @Inject
-    private PlayerPortraitsConfig config;
+    private MmoHudConfig config;
 
     @Override
     public void setPreferredPosition(OverlayPosition preferredPosition) {

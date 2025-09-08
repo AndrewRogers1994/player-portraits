@@ -1,4 +1,4 @@
-package com.playerportraits.overlays;
+package com.mmo.overlays;
 
 import net.runelite.client.ui.overlay.Overlay;
 

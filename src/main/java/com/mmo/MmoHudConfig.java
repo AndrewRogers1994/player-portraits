@@ -1,12 +1,12 @@
-package com.playerportraits;
+package com.mmo;
 
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
 
-@ConfigGroup("PlayerPortraits")
-public interface PlayerPortraitsConfig extends Config
+@ConfigGroup("MMOHud")
+public interface MmoHudConfig extends Config
 {
     @ConfigItem(
             keyName = "playerFrameScale",
