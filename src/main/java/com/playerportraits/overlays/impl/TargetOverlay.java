@@ -1,5 +1,7 @@
-package com.playerportraits;
+package com.playerportraits.overlays.impl;
 
+import com.playerportraits.PlayerPortraitsConfig;
+import com.playerportraits.overlays.HeadOverlay;
 import net.runelite.api.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
@@ -18,8 +20,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
 import java.io.IOException;
 
-public class TargetOverlay extends HeadOverlay
-{
+public class TargetOverlay extends HeadOverlay {
     @Inject
     private ClientThread clientThread;
 
@@ -42,17 +43,15 @@ public class TargetOverlay extends HeadOverlay
 
     public NPC target;
 
-    public void SetTarget(NPC target)
-    {
+    public void setTarget(NPC target) {
         this.target = target;
-        CreateHeadWidget();
+        createHeadWidget();
         hasCalcedHealth = false;
     }
 
 
     @Inject
-    private TargetOverlay(Client client)
-    {
+    private TargetOverlay(Client client) {
         setPosition(OverlayPosition.DYNAMIC);
         setMovable(true);
         setDragTargetable(true);
@@ -60,7 +59,7 @@ public class TargetOverlay extends HeadOverlay
         this.client = client;
         loadImages();
 
-        lastRender = new Rectangle(0, 0, 200,50);
+        lastRender = new Rectangle(0, 0, 200, 50);
         setLayer(OverlayLayer.MANUAL);
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE);
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX);
@@ -74,14 +73,12 @@ public class TargetOverlay extends HeadOverlay
     @Override
     public void setPreferredPosition(OverlayPosition preferredPosition) {
         super.setPreferredPosition(preferredPosition);
-        CreateHeadWidget();
+        createHeadWidget();
     }
 
 
-    public void loadImages()
-    {
-        try
-        {
+    public void loadImages() {
+        try {
             myImage = ImageIO.read(getClass().getResourceAsStream("/images/hpbar_inverted.png"));
             barTexture = ImageIO.read(getClass().getResourceAsStream("/images/hp_gradient_gs.png"));
 
@@ -94,44 +91,38 @@ public class TargetOverlay extends HeadOverlay
                 g2.dispose();
                 barTexture = converted;
             }
-        }
-        catch (IOException | NullPointerException e)
-        {
+        } catch (IOException | NullPointerException e) {
             e.printStackTrace();
         }
     }
 
 
     @Override
-    public Dimension render(Graphics2D graphics)
-    {
-        float scale = (float)config.enemyFrameScale() / 100;
+    public Dimension render(Graphics2D graphics) {
+        float scale = (float) config.enemyFrameScale() / 100;
 
-        if(target == null)
-        {
-            return new Dimension((int)(myImage.getWidth() * scale),(int)(myImage.getHeight() * scale));
+        if (target == null) {
+            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
         }
 
-        int currentHealth = CalculateHp();
+        int currentHealth = calculateHp();
 
-        if(currentHealth == -1 && hasCalcedHealth)
-        {
-            return new Dimension((int)(myImage.getWidth() * scale),(int)(myImage.getHeight() * scale));
+        if (currentHealth == -1 && hasCalcedHealth) {
+            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
         }
 
 
-        DrawPortrait(graphics, scale);
-        DrawHpBar(graphics, scale);
-        DrawCombatLevel(graphics, scale);
-        CreateHeadWidget();
-        DrawMissingModel(graphics, scale);
+        drawPortrait(graphics, scale);
+        drawHpBar(graphics, scale);
+        drawCombatLevel(graphics, scale);
+        createHeadWidget();
+        drawMissingModel(graphics, scale);
 
-        return new Dimension((int)(myImage.getWidth() * scale),(int)(myImage.getHeight() * scale));
+        return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
     }
 
-    private void DrawPortrait(Graphics2D graphics, float scale)
-    {
-        if(myImage == null)
+    private void drawPortrait(Graphics2D graphics, float scale) {
+        if (myImage == null)
             return;
 
         graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -140,26 +131,24 @@ public class TargetOverlay extends HeadOverlay
 
         if (headWidget == null || headWidget.isHidden()) {
 
-            if(lastRender != null)
-            {
-                graphics.drawImage(myImage, lastRender.x, lastRender.y, (int)(myImage.getWidth() * scale), (int)(myImage.getHeight() * scale), null);
+            if (lastRender != null) {
+                graphics.drawImage(myImage, lastRender.x, lastRender.y, (int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale), null);
             }
 
             return;
         }
 
-        graphics.drawImage(myImage, 0, 0, (int)(myImage.getWidth() * scale), (int)(myImage.getHeight() * scale), null);
+        graphics.drawImage(myImage, 0, 0, (int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale), null);
 
     }
 
     @Override
     public void setPreferredLocation(java.awt.Point preferredLocation) {
         super.setPreferredLocation(preferredLocation);
-        CreateHeadWidget();
+        createHeadWidget();
     }
 
-    private void DrawHpBar(Graphics2D graphics, float scale)
-    {
+    private void drawHpBar(Graphics2D graphics, float scale) {
         graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
@@ -169,15 +158,14 @@ public class TargetOverlay extends HeadOverlay
         int maxHealth = npcManager.getHealth(target.getId());
 
 
-        int currentHealth = CalculateHp();
+        int currentHealth = calculateHp();
 
 
-        if(currentHealth == -1)
-        {
+        if (currentHealth == -1) {
             currentHealth = maxHealth;
         }
 
-        int fullWidth = (int)(config.enemyHealthBarWidth() * scale);           // width when at 100%
+        int fullWidth = (int) (config.enemyHealthBarWidth() * scale);           // width when at 100%
         int height = 20;                // fixed height
         double percentRemaining = currentHealth / (double) maxHealth;
 
@@ -191,179 +179,160 @@ public class TargetOverlay extends HeadOverlay
         RescaleOp tint = new RescaleOp(scales, offsets, null);
         BufferedImage tinted = tint.filter(barTexture, null);
 
-        graphics.drawImage(tinted, (int)(config.enemyHealthBarXOffset() * scale), (int)(config.enemyHealthBarYOffset() * scale), barWidth, (int)(config.enemyHealthBarHeight() * scale), null);
+        graphics.drawImage(tinted, (int) (config.enemyHealthBarXOffset() * scale), (int) (config.enemyHealthBarYOffset() * scale), barWidth, (int) (config.enemyHealthBarHeight() * scale), null);
 
 
-        graphics.setColor(new Color(146,17,5));
-      //  graphics.fillRoundRect(6, 36, barWidth, 28, 5, 5);
+        graphics.setColor(new Color(146, 17, 5));
+        //  graphics.fillRoundRect(6, 36, barWidth, 28, 5, 5);
 
 
-        Font font = new Font("SansSerif", Font.PLAIN, (int)(config.enemyHealthTextSize() * scale));
+        Font font = new Font("SansSerif", Font.PLAIN, (int) (config.enemyHealthTextSize() * scale));
         graphics.setFont(font);
 
-        if(currentHealth <= 0)
-        {
+        if (currentHealth <= 0) {
             // Draw shadow / outline
-            graphics.setColor(new Color(100,10,4));
-            graphics.drawString("100%", (int) (config.enemyHealthTextXOffset() * scale) + 2,  (int)(config.enemyHealthTextYOffset() * scale) + 2);  // offset by 1-2 pixels
+            graphics.setColor(new Color(100, 10, 4));
+            graphics.drawString("100%", (int) (config.enemyHealthTextXOffset() * scale) + 2, (int) (config.enemyHealthTextYOffset() * scale) + 2);  // offset by 1-2 pixels
 
             // Draw main text
-            graphics.setColor(new Color(238,209,149));
+            graphics.setColor(new Color(238, 209, 149));
             graphics.drawString("100%", (int) (config.enemyHealthTextXOffset() * scale), (int) (config.enemyHealthTextYOffset() * scale));  // offset by 1-2 pixels
             return;
         }
 
 
         // Draw shadow / outline
-        graphics.setColor(new Color(100,10,4));
-        graphics.drawString(currentHealth + "/" + maxHealth, (int) (config.enemyHealthTextXOffset() * scale) + 2,  (int)(config.enemyHealthTextYOffset() * scale) + 2);  // offset by 1-2 pixels
+        graphics.setColor(new Color(100, 10, 4));
+        graphics.drawString(currentHealth + "/" + maxHealth, (int) (config.enemyHealthTextXOffset() * scale) + 2, (int) (config.enemyHealthTextYOffset() * scale) + 2);  // offset by 1-2 pixels
 
         // Draw main text
-        graphics.setColor(new Color(238,209,149));
+        graphics.setColor(new Color(238, 209, 149));
         graphics.drawString(currentHealth + "/" + maxHealth, (int) (config.enemyHealthTextXOffset() * scale), (int) (config.enemyHealthTextYOffset() * scale));  // offset by 1-2 pixels
 
     }
 
-    private void DrawCombatLevel(Graphics2D graphics, float scale)
-    {
+    private void drawCombatLevel(Graphics2D graphics, float scale) {
         int combatLevel = target.getCombatLevel();
 
         Font font = new Font("SansSerif", Font.PLAIN, 10); // 24pt font
 
         graphics.setFont(font);
         // Draw shadow / outline
-        graphics.setColor(new Color(238,209,149));
-        graphics.drawString("" + combatLevel, (int)(175 * scale),  (int)(97 * scale));  // offset by 1-2 pixels
+        graphics.setColor(new Color(238, 209, 149));
+        graphics.drawString("" + combatLevel, (int) (175 * scale), (int) (97 * scale));  // offset by 1-2 pixels
     }
 
-    private void DrawMissingModel(Graphics2D graphics, float scale)
-    {
+    private void drawMissingModel(Graphics2D graphics, float scale) {
         var models = target.getComposition().getChatheadModels();
 
-        if(models != null)
-        {
+        if (models != null) {
             return;
         }
 
         Font font = new Font("SansSerif", Font.BOLD, 60); // 24pt font
 
         graphics.setFont(font);
-        graphics.setColor(new Color(176,143,39));
+        graphics.setColor(new Color(176, 143, 39));
 
         // Draw shadow / outline
-        graphics.drawString("?", (int) (config.enemyHeadXOffset() - 3 * scale) + 1,  (int)(config.enemyHeadYOffset() + 30 * scale) + 1);
+        graphics.drawString("?", (int) (config.enemyHeadXOffset() - 3 * scale) + 1, (int) (config.enemyHeadYOffset() + 30 * scale) + 1);
 
 
         // Draw main text
-        graphics.setColor(new Color(237,186,45));
-        graphics.drawString("?", (int) (config.enemyHeadXOffset() - 3 * scale),  (int)(config.enemyHeadYOffset() + 30 * scale));
+        graphics.setColor(new Color(237, 186, 45));
+        graphics.drawString("?", (int) (config.enemyHeadXOffset() - 3 * scale), (int) (config.enemyHeadYOffset() + 30 * scale));
     }
 
-    public void CreateHeadWidget()
-    {
+    public void createHeadWidget() {
         clientThread.invoke(() ->
-                {
+        {
 
-                    if(!parentSet)
-                    {
-                        return;
-                    }
-
-                    if(target == null)
-                    {
-                        if(headWidget != null)
-                        {
-                            headWidget.setHidden(true);
-                            headWidget.revalidate();
-                        }
-                        return;
-                    }
-
-                    var loc = getPreferredLocation();
-
-        if(parent == null) {
-            Widget p = client.getWidget(currentParent, currentChildIndex);
-
-            if(p==null)
-            {
+            if (!parentSet) {
                 return;
             }
 
-            parent = p;
-        }
-
-        if(headWidget == null)
-        {
-            headWidget = parent.createChild(-1, WidgetType.MODEL);
-        }
-
-        if(CalculateHp() == -1 && hasCalcedHealth)
-        {
-            if(headWidget != null)
-            {
-                headWidget.setHidden(true);
-                headWidget.revalidate();
+            if (target == null) {
+                if (headWidget != null) {
+                    headWidget.setHidden(true);
+                    headWidget.revalidate();
+                }
+                return;
             }
-            return;
-        }
 
-            float scale = ((float)config.enemyFrameScale() / 100);
+            var loc = getPreferredLocation();
 
-        var chatHeads = target.getComposition().getChatheadModels();
+            if (parent == null) {
+                Widget p = client.getWidget(currentParent, currentChildIndex);
 
-        if(chatHeads != null && chatHeads.length > 0) {
-            headWidget.setType(6);
-            headWidget.setContentType(0);
-            headWidget.setItemId(-1);
-            headWidget.setItemQuantity(0);
-            headWidget.setItemQuantityMode(2);
-            headWidget.setModelId(target.getId());
-            headWidget.setModelType(WidgetModelType.NPC_CHATHEAD);
-            headWidget.setSpriteId(-1);
+                if (p == null) {
+                    return;
+                }
 
-            headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
-            headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
-            headWidget.setOriginalWidth((int) (32 * scale));
-            headWidget.setOriginalHeight((int) (32 * scale));
-            headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
-            headWidget.setRotationX(0);
-            headWidget.setAnimationId(614); // 588 was what we had // 614 is angry
-            headWidget.setRotationZ(config.enemyRotation()); // 1882 was what we had before
-            headWidget.setHidden(false);
-        }
+                parent = p;
+            }
+
+            if (headWidget == null) {
+                headWidget = parent.createChild(-1, WidgetType.MODEL);
+            }
+
+            if (calculateHp() == -1 && hasCalcedHealth) {
+                if (headWidget != null) {
+                    headWidget.setHidden(true);
+                    headWidget.revalidate();
+                }
+                return;
+            }
+
+            float scale = ((float) config.enemyFrameScale() / 100);
+
+            var chatHeads = target.getComposition().getChatheadModels();
+
+            if (chatHeads != null && chatHeads.length > 0) {
+                headWidget.setType(6);
+                headWidget.setContentType(0);
+                headWidget.setItemId(-1);
+                headWidget.setItemQuantity(0);
+                headWidget.setItemQuantityMode(2);
+                headWidget.setModelId(target.getId());
+                headWidget.setModelType(WidgetModelType.NPC_CHATHEAD);
+                headWidget.setSpriteId(-1);
+
+                headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
+                headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
+                headWidget.setOriginalWidth((int) (32 * scale));
+                headWidget.setOriginalHeight((int) (32 * scale));
+                headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
+                headWidget.setRotationX(0);
+                headWidget.setAnimationId(614); // 588 was what we had // 614 is angry
+                headWidget.setRotationZ(config.enemyRotation()); // 1882 was what we had before
+                headWidget.setHidden(false);
+            }
             headWidget.revalidate();
 
-                });
+        });
     }
 
-    private int CalculateHp()
-    {
+    private int calculateHp() {
 
         int lastMaxHealth = npcManager.getHealth(target.getId());
         int lastRatio = target.getHealthRatio(); // current health proportion
         int healthScale = target.getHealthScale(); // max health proportion
 
         int health = 0;
-        if (lastRatio > 0)
-        {
+        if (lastRatio > 0) {
             int minHealth = 1;
             int maxHealth;
-            if (healthScale > 1)
-            {
-                if (lastRatio > 1)
-                {
+            if (healthScale > 1) {
+                if (lastRatio > 1) {
                     // This doesn't apply if healthRatio = 1, because of the special case in the server calculation that
                     // health = 0 forces healthRatio = 0 instead of the expected healthRatio = 1
                     minHealth = (lastMaxHealth * (lastRatio - 1) + healthScale - 2) / (healthScale - 1);
                 }
                 maxHealth = (lastMaxHealth * lastRatio - 1) / (healthScale - 1);
-                if (maxHealth > lastMaxHealth)
-                {
+                if (maxHealth > lastMaxHealth) {
                     maxHealth = lastMaxHealth;
                 }
-            }
-            else
-            {
+            } else {
                 // If healthScale is 1, healthRatio will always be 1 unless health = 0
                 // so we know nothing about the upper limit except that it can't be higher than maxHealth
                 maxHealth = lastMaxHealth;
