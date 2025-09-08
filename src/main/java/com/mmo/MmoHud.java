@@ -9,6 +9,8 @@ import com.mmo.overlays.impl.TargetOverlay;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.widgets.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -39,21 +41,15 @@ public class MmoHud extends Plugin {
     @Inject
     private TargetOverlay targetOverlay;
 
-    public int RESIZABLE_MODERN_CHILD_INDEX = 66;
-    public int FIXED_CHILD_INDEX = 0;
-    public int RESIZABLE_CLASSIC_CHILD_INDEX = 34;
-
-    private int currentChildIndex;
-    private int currentParent;
-
-    boolean test = false;
-
-    public Widget parent;
+    @Provides
+    MmoHudConfig provideConfig(ConfigManager configManager) {
+        return configManager.getConfig(MmoHudConfig.class);
+    }
 
     private Item previousHelment = null;
 
     @Override
-    protected void startUp() throws Exception {
+    protected void startUp() {
         overlayManager.add(playerOverlay);
         overlayManager.add(targetOverlay);
 
@@ -61,23 +57,22 @@ public class MmoHud extends Plugin {
 
     @Subscribe
     public void onWidgetLoaded(WidgetLoaded event) {
-        if (event.getGroupId() == WidgetID.RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX_GROUP_ID) {
-            playerOverlay.setParentTarget(WidgetID.RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX_GROUP_ID, RESIZABLE_CLASSIC_CHILD_INDEX);
-            targetOverlay.setParentTarget(WidgetID.RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX_GROUP_ID, RESIZABLE_CLASSIC_CHILD_INDEX);
-            playerOverlay.createHeadWidget();
-            return;
+        int groupId = event.getGroupId();
+        int packed = -1;
+
+        if (groupId == InterfaceID.TOPLEVEL_OSRS_STRETCH) {
+            packed = InterfaceID.ToplevelOsrsStretch.GAMEFRAME;
+        } else if (groupId == InterfaceID.TOPLEVEL_PRE_EOC) {
+            packed = InterfaceID.ToplevelPreEoc.GAMEFRAME;
+        } else if (groupId == InterfaceID.TOPLEVEL) {
+            packed = InterfaceID.Toplevel.GAMEFRAME;
         }
 
-        if (event.getGroupId() == WidgetID.RESIZABLE_VIEWPORT_BOTTOM_LINE_GROUP_ID) {
-            playerOverlay.setParentTarget(WidgetID.RESIZABLE_VIEWPORT_BOTTOM_LINE_GROUP_ID, RESIZABLE_MODERN_CHILD_INDEX);
-            targetOverlay.setParentTarget(WidgetID.RESIZABLE_VIEWPORT_BOTTOM_LINE_GROUP_ID, RESIZABLE_MODERN_CHILD_INDEX);
-            playerOverlay.createHeadWidget();
-            return;
-        }
+        int child = WidgetUtil.componentToId(packed);
 
-        if (event.getGroupId() == WidgetID.FIXED_VIEWPORT_GROUP_ID) {
-            playerOverlay.setParentTarget(WidgetID.FIXED_VIEWPORT_GROUP_ID, FIXED_CHILD_INDEX);
-            targetOverlay.setParentTarget(WidgetID.FIXED_VIEWPORT_GROUP_ID, FIXED_CHILD_INDEX);
+        if (child != -1) {
+            playerOverlay.setParentTarget(groupId, child);
+            targetOverlay.setParentTarget(groupId, child);
             playerOverlay.createHeadWidget();
         }
     }
@@ -102,7 +97,7 @@ public class MmoHud extends Plugin {
     @Subscribe
     public void onItemContainerChanged(ItemContainerChanged event) {
         // Only care about the equipment container
-        if (event.getContainerId() != InventoryID.EQUIPMENT.getId())
+        if (event.getContainerId() != InventoryID.WORN)
             return;
 
         Item[] equipment = event.getItemContainer().getItems();
@@ -138,8 +133,4 @@ public class MmoHud extends Plugin {
 
     }
 
-    @Provides
-    MmoHudConfig provideConfig(ConfigManager configManager) {
-        return configManager.getConfig(MmoHudConfig.class);
-    }
 }
