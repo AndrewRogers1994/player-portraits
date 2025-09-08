@@ -2,6 +2,7 @@ package com.mmo.overlays.impl;
 
 import com.mmo.MmoHudConfig;
 import com.mmo.overlays.HeadOverlay;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Skill;
 import net.runelite.api.widgets.Widget;
@@ -9,6 +10,7 @@ import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.ui.overlay.*;
+import net.runelite.client.util.ImageUtil;
 
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -17,11 +19,14 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
 import java.io.IOException;
 
+@Slf4j
 public class PlayerOverlay extends HeadOverlay {
+
     @Inject
     private ClientThread clientThread;
 
-    private final Client client;
+    @Inject
+    private Client client;
 
     private Widget headWidget;
 
@@ -39,12 +44,11 @@ public class PlayerOverlay extends HeadOverlay {
 
 
     @Inject
-    private PlayerOverlay(Client client) {
+    private PlayerOverlay() {
         setPosition(OverlayPosition.DYNAMIC);
         setMovable(true);
         setDragTargetable(true);
         setPriority(OverlayPriority.HIGHEST);
-        this.client = client;
         loadImage();
 
         lastRender = new Rectangle(0, 0, 200, 50);
@@ -68,11 +72,9 @@ public class PlayerOverlay extends HeadOverlay {
 
     public void loadImage() {
         try {
-            myImage = ImageIO.read(getClass().getResourceAsStream("/images/player_hpbar.png"));
-
-            barTexture = ImageIO.read(getClass().getResourceAsStream("/images/hp_gradient_gs.png"));
-
-            headContainer = ImageIO.read(getClass().getResourceAsStream("/images/head_container.png"));
+            myImage = ImageUtil.loadImageResource(getClass(), "/images/player_hpbar.png");
+            barTexture = ImageUtil.loadImageResource(getClass(), "/images/hp_gradient_gs.png");
+            headContainer = ImageUtil.loadImageResource(getClass(), "/images/head_container.png");
 
 
             // Convert if not ARGB
@@ -84,8 +86,8 @@ public class PlayerOverlay extends HeadOverlay {
                 g2.dispose();
                 barTexture = converted;
             }
-        } catch (IOException | NullPointerException e) {
-            e.printStackTrace();
+        } catch (NullPointerException e) {
+            log.error("Failed to load images for PlayerOverlay: player_hpbar.png, hp_gradient_gs.png, head_container.png", e);
         }
     }
 

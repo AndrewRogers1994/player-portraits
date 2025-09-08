@@ -2,6 +2,7 @@ package com.mmo.overlays.impl;
 
 import com.mmo.MmoHudConfig;
 import com.mmo.overlays.HeadOverlay;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
@@ -12,6 +13,7 @@ import net.runelite.client.game.NPCManager;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
+import net.runelite.client.util.ImageUtil;
 
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -20,11 +22,14 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
 import java.io.IOException;
 
+@Slf4j
 public class TargetOverlay extends HeadOverlay {
+
     @Inject
     private ClientThread clientThread;
 
-    private final Client client;
+    @Inject
+    private Client client;
 
     private Widget headWidget;
 
@@ -51,12 +56,11 @@ public class TargetOverlay extends HeadOverlay {
 
 
     @Inject
-    private TargetOverlay(Client client) {
+    private TargetOverlay() {
         setPosition(OverlayPosition.DYNAMIC);
         setMovable(true);
         setDragTargetable(true);
         setPriority(OverlayPriority.HIGHEST);
-        this.client = client;
         loadImages();
 
         lastRender = new Rectangle(0, 0, 200, 50);
@@ -79,8 +83,9 @@ public class TargetOverlay extends HeadOverlay {
 
     public void loadImages() {
         try {
-            myImage = ImageIO.read(getClass().getResourceAsStream("/images/hpbar_inverted.png"));
-            barTexture = ImageIO.read(getClass().getResourceAsStream("/images/hp_gradient_gs.png"));
+
+            myImage = ImageUtil.loadImageResource(getClass(), "/images/hpbar_inverted.png");
+            barTexture = ImageUtil.loadImageResource(getClass(), "/images/hp_gradient_gs.png");
 
             // Convert if not ARGB
             if (barTexture.getType() != BufferedImage.TYPE_INT_ARGB) {
@@ -91,8 +96,8 @@ public class TargetOverlay extends HeadOverlay {
                 g2.dispose();
                 barTexture = converted;
             }
-        } catch (IOException | NullPointerException e) {
-            e.printStackTrace();
+        } catch (NullPointerException e) {
+            log.error("Failed to load images for TargetOverlay: hpbar_inverted.png, hp_gradient_gs.png", e);
         }
     }
 
