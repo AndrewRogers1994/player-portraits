@@ -11,13 +11,17 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.widgets.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
+
+import java.awt.image.BufferedImage;
 
 @PluginDescriptor(
    name = "MMO Hud",
@@ -52,7 +56,6 @@ public class MmoHud extends Plugin {
     protected void startUp() {
         overlayManager.add(playerOverlay);
         overlayManager.add(targetOverlay);
-
     }
 
     @Subscribe

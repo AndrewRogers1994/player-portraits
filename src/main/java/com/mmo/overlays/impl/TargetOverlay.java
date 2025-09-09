@@ -79,13 +79,13 @@ public class TargetOverlay extends HeadOverlay {
         float scale = ((float) config.enemyFrameScale() / 100);
         headWidget.setType(6);
         headWidget.setModelType(WidgetModelType.NPC_CHATHEAD);
-        headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
-        headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
+        headWidget.setOriginalX((int) (loc.x + 164 * scale));
+        headWidget.setOriginalY((int) (loc.y + 32 * scale));
         headWidget.setOriginalWidth((int) (32 * scale));
         headWidget.setOriginalHeight((int) (32 * scale));
         headWidget.setModelZoom((int) (1200 / scale));
         headWidget.setAnimationId(614);
-        headWidget.setRotationZ(config.enemyRotation());
+        headWidget.setRotationZ(0);
         headWidget.setHidden(true);
         headWidget.revalidate();
     }
@@ -199,8 +199,8 @@ public class TargetOverlay extends HeadOverlay {
             currentHealth = maxHealth;
         }
 
-        int fullWidth = (int) (config.enemyHealthBarWidth() * scale);           // width when at 100%
-        int height = 20;                // fixed height
+        int fullWidth = (int) (128 * scale);           // fixed width
+        int height = (int) (29 * scale);               // fixed height
         double percentRemaining = currentHealth / (double) maxHealth;
 
         int barWidth = (int) (fullWidth * percentRemaining);
@@ -213,35 +213,35 @@ public class TargetOverlay extends HeadOverlay {
         RescaleOp tint = new RescaleOp(scales, offsets, null);
         BufferedImage tinted = tint.filter(barTexture, null);
 
-        graphics.drawImage(tinted, (int) (config.enemyHealthBarXOffset() * scale), (int) (config.enemyHealthBarYOffset() * scale), barWidth, (int) (config.enemyHealthBarHeight() * scale), null);
+        graphics.drawImage(tinted, (int) (7 * scale), (int) (36 * scale), barWidth, height, null);
 
 
         graphics.setColor(new Color(146, 17, 5));
         //  graphics.fillRoundRect(6, 36, barWidth, 28, 5, 5);
 
 
-        Font font = new Font("SansSerif", Font.PLAIN, (int) (config.enemyHealthTextSize() * scale));
+        Font font = new Font("SansSerif", Font.PLAIN, (int) (18 * scale));
         graphics.setFont(font);
 
         if (currentHealth <= 0) {
             // Draw shadow / outline
             graphics.setColor(new Color(100, 10, 4));
-            graphics.drawString("100%", (int) (config.enemyHealthTextXOffset() * scale) + 2, (int) (config.enemyHealthTextYOffset() * scale) + 2);  // offset by 1-2 pixels
+            graphics.drawString("100%", (int) (40 * scale) + 2, (int) (57 * scale) + 2);
 
             // Draw main text
             graphics.setColor(new Color(238, 209, 149));
-            graphics.drawString("100%", (int) (config.enemyHealthTextXOffset() * scale), (int) (config.enemyHealthTextYOffset() * scale));  // offset by 1-2 pixels
+            graphics.drawString("100%", (int) (40 * scale), (int) (57 * scale));
             return;
         }
 
 
         // Draw shadow / outline
         graphics.setColor(new Color(100, 10, 4));
-        graphics.drawString(currentHealth + "/" + maxHealth, (int) (config.enemyHealthTextXOffset() * scale) + 2, (int) (config.enemyHealthTextYOffset() * scale) + 2);  // offset by 1-2 pixels
+        graphics.drawString(currentHealth + "/" + maxHealth, (int) (40 * scale) + 2, (int) (57 * scale) + 2);
 
         // Draw main text
         graphics.setColor(new Color(238, 209, 149));
-        graphics.drawString(currentHealth + "/" + maxHealth, (int) (config.enemyHealthTextXOffset() * scale), (int) (config.enemyHealthTextYOffset() * scale));  // offset by 1-2 pixels
+        graphics.drawString(currentHealth + "/" + maxHealth, (int) (40 * scale), (int) (57 * scale));
 
     }
 
@@ -266,12 +266,12 @@ public class TargetOverlay extends HeadOverlay {
         graphics.setColor(new Color(176, 143, 39));
 
         // Draw shadow / outline
-        graphics.drawString("?", (int) (config.enemyHeadXOffset() - 3 * scale) + 1, (int) (config.enemyHeadYOffset() + 30 * scale) + 1);
+        graphics.drawString("?", (int) (164 - 3 * scale) + 1, (int) (32 + 30 * scale) + 1);
 
 
         // Draw main text
         graphics.setColor(new Color(237, 186, 45));
-        graphics.drawString("?", (int) (config.enemyHeadXOffset() - 3 * scale), (int) (config.enemyHeadYOffset() + 30 * scale));
+        graphics.drawString("?", (int) (164 - 3 * scale), (int) (32 + 30 * scale));
     }
 
     private void drawHeadWidget() {
@@ -283,14 +283,14 @@ public class TargetOverlay extends HeadOverlay {
 
             var loc = getPreferredLocation();
 
-            float scale = ((float) config.playerFrameScale() / 100);
+            float scale = ((float) config.enemyFrameScale() / 100);
 
-            headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
-            headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
+            headWidget.setOriginalX((int) (loc.x + 164 * scale));
+            headWidget.setOriginalY((int) (loc.y + 32 * scale));
             headWidget.setOriginalWidth((int) (32 * scale));
             headWidget.setOriginalHeight((int) (32 * scale));
             headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
-            headWidget.setRotationZ(config.enemyRotation()); // 1882 was what we had before
+            headWidget.setRotationZ(0); // 1882 was what we had before
 
             headWidget.revalidate();
         });
