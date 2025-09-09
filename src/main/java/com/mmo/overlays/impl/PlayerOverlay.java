@@ -5,9 +5,7 @@ import com.mmo.overlays.HeadOverlay;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Skill;
-import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
-import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.ui.overlay.*;
 import net.runelite.client.util.ImageUtil;
@@ -26,8 +24,6 @@ public class PlayerOverlay extends HeadOverlay {
     @Inject
     private Client client;
 
-    private Widget headWidget;
-
     private BufferedImage myImage;
 
     private BufferedImage barTexture;
@@ -36,11 +32,7 @@ public class PlayerOverlay extends HeadOverlay {
 
     private Rectangle lastRender;
 
-    public Widget parent;
-
     private int dialogId = 5000;
-
-    private boolean isHidden = false;
 
 
     @Inject
@@ -66,12 +58,36 @@ public class PlayerOverlay extends HeadOverlay {
     public void setPreferredPosition(OverlayPosition preferredPosition) {
         super.setPreferredPosition(preferredPosition);
         drawHeadWidget();
-
     }
 
     @Override
     public void setPreferredLocation(java.awt.Point preferredLocation) {
         super.setPreferredLocation(preferredLocation);
+        drawHeadWidget();
+    }
+
+    @Override
+    public void setDefaultHeadProperties() {
+        var loc = getPreferredLocation();
+        float scale = ((float) config.playerFrameScale() / 100);
+
+        headWidget.setType(6);
+        headWidget.setModelId(dialogId);
+        headWidget.setModelType(3);
+        headWidget.setOriginalX((int) (loc.x + (config.playerHeadXOffset()) * scale));
+        headWidget.setOriginalY((int) (loc.y + (config.playerHeadYOffset()) * scale));
+        headWidget.setOriginalWidth((int) (32 * scale));
+        headWidget.setOriginalHeight((int) (32 * scale));
+        headWidget.setModelZoom((int) (1200 / scale));
+        headWidget.setAnimationId(588);
+        headWidget.setRotationZ(config.playerRotation());
+        headWidget.revalidate();
+    }
+
+    @Override
+    public void forceRedraw() {
+        dialogId++;
+        headWidget.setModelId(dialogId);
         drawHeadWidget();
     }
 
@@ -89,39 +105,6 @@ public class PlayerOverlay extends HeadOverlay {
         graphics.drawImage(headContainer, 0, 0, (int) (headContainer.getWidth() * scale), (int) (headContainer.getHeight() * scale), null);
         drawCombatLevel(graphics, scale);
         return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
-    }
-
-    @Override
-    public void setParentTarget(int parentId, int childId) {
-        super.setParentTarget(parentId, childId);
-
-        if(parent == null) {
-            parent = client.getWidget(currentParent, currentChildIndex);
-        }
-
-        if(parent != null && headWidget == null) {
-            var loc = getPreferredLocation();
-            float scale = ((float) config.playerFrameScale() / 100);
-
-            headWidget = parent.createChild(-1, WidgetType.MODEL);
-            headWidget.setType(6);
-            headWidget.setContentType(0);
-            headWidget.setItemId(-1);
-            headWidget.setItemQuantity(0);
-            headWidget.setItemQuantityMode(2);
-            headWidget.setModelId(dialogId);
-            headWidget.setModelType(3);
-            headWidget.setSpriteId(-1);
-            headWidget.setOriginalX((int) (loc.x + (config.playerHeadXOffset()) * scale));
-            headWidget.setOriginalY((int) (loc.y + (config.playerHeadYOffset()) * scale));
-            headWidget.setOriginalWidth((int) (32 * scale));
-            headWidget.setOriginalHeight((int) (32 * scale));
-            headWidget.setModelZoom((int) (1200 / scale));
-            headWidget.setRotationX(0);
-            headWidget.setAnimationId(588);
-            headWidget.setRotationZ(config.playerRotation());
-            headWidget.revalidate();
-        }
     }
 
     public void loadImage() {
@@ -143,20 +126,6 @@ public class PlayerOverlay extends HeadOverlay {
         } catch (NullPointerException e) {
             log.error("Failed to load images for PlayerOverlay: player_hpbar.png, hp_gradient_gs.png, head_container.png", e);
         }
-    }
-
-    public void setHidden(boolean isHidden) {
-        this.isHidden = isHidden;
-
-        if(headWidget != null) {
-            headWidget.setHidden(isHidden);
-        }
-    }
-
-    public void forceRedraw() {
-        dialogId++;
-        headWidget.setModelId(dialogId);
-        drawHeadWidget();
     }
 
     private void drawHpBar(Graphics2D graphics, float scale) {
@@ -279,6 +248,10 @@ public class PlayerOverlay extends HeadOverlay {
     private void drawHeadWidget() {
         clientThread.invoke(() ->
         {
+            if(!parentSet) {
+                return;
+            }
+
             var loc = getPreferredLocation();
 
             float scale = ((float) config.playerFrameScale() / 100);

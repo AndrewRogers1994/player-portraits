@@ -4,10 +4,8 @@ import com.mmo.MmoHudConfig;
 import com.mmo.overlays.HeadOverlay;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetModelType;
-import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.NPCManager;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -15,12 +13,10 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.util.ImageUtil;
 
-import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
-import java.io.IOException;
 
 @Slf4j
 public class TargetOverlay extends HeadOverlay {
@@ -31,32 +27,24 @@ public class TargetOverlay extends HeadOverlay {
     @Inject
     private Client client;
 
-    private Widget headWidget;
-
     private BufferedImage myImage;
 
     private BufferedImage barTexture;
 
     private Rectangle lastRender;
 
-    public Widget parent;
-
     private boolean hasCalcedHealth = false;
+
+    private boolean hasChatHead = false;
 
     @Inject
     NPCManager npcManager;
 
     public NPC target;
 
-    public void setTarget(NPC target) {
-        this.target = target;
-        createHeadWidget();
-        hasCalcedHealth = false;
-    }
-
-
     @Inject
     private TargetOverlay() {
+        isHidden = true;
         setPosition(OverlayPosition.DYNAMIC);
         setMovable(true);
         setDragTargetable(true);
@@ -68,7 +56,6 @@ public class TargetOverlay extends HeadOverlay {
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE);
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX);
         drawAfterLayer(WidgetInfo.FIXED_VIEWPORT);
-
     }
 
     @Inject
@@ -77,7 +64,63 @@ public class TargetOverlay extends HeadOverlay {
     @Override
     public void setPreferredPosition(OverlayPosition preferredPosition) {
         super.setPreferredPosition(preferredPosition);
-        createHeadWidget();
+        drawHeadWidget();
+    }
+
+    @Override
+    public void setPreferredLocation(java.awt.Point preferredLocation) {
+        super.setPreferredLocation(preferredLocation);
+        drawHeadWidget();
+    }
+
+    @Override
+    public void setDefaultHeadProperties() {
+        var loc = getPreferredLocation();
+        float scale = ((float) config.enemyFrameScale() / 100);
+        headWidget.setType(6);
+        headWidget.setContentType(0);
+        headWidget.setItemId(-1);
+        headWidget.setItemQuantity(0);
+        headWidget.setItemQuantityMode(2);
+        headWidget.setSpriteId(-1);
+        headWidget.setModelId(-1);
+        headWidget.setModelType(WidgetModelType.NPC_CHATHEAD);
+        headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
+        headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
+        headWidget.setOriginalWidth((int) (32 * scale));
+        headWidget.setOriginalHeight((int) (32 * scale));
+        headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
+        headWidget.setAnimationId(614); // 588 was what we had // 614 is angry
+        headWidget.setRotationZ(config.enemyRotation()); // 1882 was what we had before
+        headWidget.setHidden(true);
+        headWidget.revalidate();
+    }
+
+    @Override
+    public void forceRedraw() {
+        drawHeadWidget();
+    }
+
+    @Override
+    public Dimension render(Graphics2D graphics) {
+        float scale = (float) config.enemyFrameScale() / 100;
+
+        if (target == null || isHidden) {
+            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
+        }
+
+        int currentHealth = calculateHp();
+
+        if (currentHealth == -1 && hasCalcedHealth) {
+            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
+        }
+
+        drawPortrait(graphics, scale);
+        drawHpBar(graphics, scale);
+        drawCombatLevel(graphics, scale);
+        drawMissingModel(graphics, scale);
+
+        return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
     }
 
 
@@ -101,29 +144,27 @@ public class TargetOverlay extends HeadOverlay {
         }
     }
 
-
-    @Override
-    public Dimension render(Graphics2D graphics) {
-        float scale = (float) config.enemyFrameScale() / 100;
-
-        if (target == null) {
-            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
+    public void setTarget(NPC target) {
+        if(!parentSet) {
+            return;
         }
 
-        int currentHealth = calculateHp();
-
-        if (currentHealth == -1 && hasCalcedHealth) {
-            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
+        this.target = target;
+        hasCalcedHealth = false;
+        if(target != null) {
+            setHidden(false);
+            if(target.getComposition().getChatheadModels() != null) {
+                hasChatHead = true;
+                headWidget.setModelId(target.getId());
+                drawHeadWidget();
+                return;
+            }
+            hasChatHead = false;
+            return;
         }
-
-
-        drawPortrait(graphics, scale);
-        drawHpBar(graphics, scale);
-        drawCombatLevel(graphics, scale);
-        createHeadWidget();
-        drawMissingModel(graphics, scale);
-
-        return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
+        headWidget.setModelId(-1);
+        hasChatHead = false;
+        setHidden(true);
     }
 
     private void drawPortrait(Graphics2D graphics, float scale) {
@@ -145,12 +186,6 @@ public class TargetOverlay extends HeadOverlay {
 
         graphics.drawImage(myImage, 0, 0, (int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale), null);
 
-    }
-
-    @Override
-    public void setPreferredLocation(java.awt.Point preferredLocation) {
-        super.setPreferredLocation(preferredLocation);
-        createHeadWidget();
     }
 
     private void drawHpBar(Graphics2D graphics, float scale) {
@@ -228,12 +263,9 @@ public class TargetOverlay extends HeadOverlay {
     }
 
     private void drawMissingModel(Graphics2D graphics, float scale) {
-        var models = target.getComposition().getChatheadModels();
-
-        if (models != null) {
+        if (hasChatHead) {
             return;
         }
-
         Font font = new Font("SansSerif", Font.BOLD, 60); // 24pt font
 
         graphics.setFont(font);
@@ -248,72 +280,25 @@ public class TargetOverlay extends HeadOverlay {
         graphics.drawString("?", (int) (config.enemyHeadXOffset() - 3 * scale), (int) (config.enemyHeadYOffset() + 30 * scale));
     }
 
-    public void createHeadWidget() {
+    private void drawHeadWidget() {
         clientThread.invoke(() ->
         {
-
-            if (!parentSet) {
-                return;
-            }
-
-            if (target == null) {
-                if (headWidget != null) {
-                    headWidget.setHidden(true);
-                    headWidget.revalidate();
-                }
+            if(!parentSet) {
                 return;
             }
 
             var loc = getPreferredLocation();
 
-            if (parent == null) {
-                Widget p = client.getWidget(currentParent, currentChildIndex);
+            float scale = ((float) config.playerFrameScale() / 100);
 
-                if (p == null) {
-                    return;
-                }
+            headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
+            headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
+            headWidget.setOriginalWidth((int) (32 * scale));
+            headWidget.setOriginalHeight((int) (32 * scale));
+            headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
+            headWidget.setRotationZ(config.enemyRotation()); // 1882 was what we had before
 
-                parent = p;
-            }
-
-            if (headWidget == null) {
-                headWidget = parent.createChild(-1, WidgetType.MODEL);
-            }
-
-            if (calculateHp() == -1 && hasCalcedHealth) {
-                if (headWidget != null) {
-                    headWidget.setHidden(true);
-                    headWidget.revalidate();
-                }
-                return;
-            }
-
-            float scale = ((float) config.enemyFrameScale() / 100);
-
-            var chatHeads = target.getComposition().getChatheadModels();
-
-            if (chatHeads != null && chatHeads.length > 0) {
-                headWidget.setType(6);
-                headWidget.setContentType(0);
-                headWidget.setItemId(-1);
-                headWidget.setItemQuantity(0);
-                headWidget.setItemQuantityMode(2);
-                headWidget.setModelId(target.getId());
-                headWidget.setModelType(WidgetModelType.NPC_CHATHEAD);
-                headWidget.setSpriteId(-1);
-
-                headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
-                headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
-                headWidget.setOriginalWidth((int) (32 * scale));
-                headWidget.setOriginalHeight((int) (32 * scale));
-                headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
-                headWidget.setRotationX(0);
-                headWidget.setAnimationId(614); // 588 was what we had // 614 is angry
-                headWidget.setRotationZ(config.enemyRotation()); // 1882 was what we had before
-                headWidget.setHidden(false);
-            }
             headWidget.revalidate();
-
         });
     }
 

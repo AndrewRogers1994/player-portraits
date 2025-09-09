@@ -104,7 +104,7 @@ public class MmoHud extends Plugin {
         }
 
         if (event.getKey().contains("enemyRotation")) {
-            targetOverlay.createHeadWidget();
+            targetOverlay.forceRedraw();
         }
     }
 
@@ -134,7 +134,6 @@ public class MmoHud extends Plugin {
 
                 if (npc.getCombatLevel() > 0) {
                     targetOverlay.setTarget(npc);
-                    targetOverlay.createHeadWidget();
                 }
 
             } else if (opponent instanceof Player) {
