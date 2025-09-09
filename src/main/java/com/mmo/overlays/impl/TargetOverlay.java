@@ -78,20 +78,14 @@ public class TargetOverlay extends HeadOverlay {
         var loc = getPreferredLocation();
         float scale = ((float) config.enemyFrameScale() / 100);
         headWidget.setType(6);
-        headWidget.setContentType(0);
-        headWidget.setItemId(-1);
-        headWidget.setItemQuantity(0);
-        headWidget.setItemQuantityMode(2);
-        headWidget.setSpriteId(-1);
-        headWidget.setModelId(-1);
         headWidget.setModelType(WidgetModelType.NPC_CHATHEAD);
         headWidget.setOriginalX((int) (loc.x + (config.enemyHeadXOffset()) * scale));
         headWidget.setOriginalY((int) (loc.y + (config.enemyHeadYOffset()) * scale));
         headWidget.setOriginalWidth((int) (32 * scale));
         headWidget.setOriginalHeight((int) (32 * scale));
-        headWidget.setModelZoom((int) (1200 / scale)); //1200 was what he had before
-        headWidget.setAnimationId(614); // 588 was what we had // 614 is angry
-        headWidget.setRotationZ(config.enemyRotation()); // 1882 was what we had before
+        headWidget.setModelZoom((int) (1200 / scale));
+        headWidget.setAnimationId(614);
+        headWidget.setRotationZ(config.enemyRotation());
         headWidget.setHidden(true);
         headWidget.revalidate();
     }
