@@ -3,18 +3,18 @@ package com.mmo;
 import com.mmo.config.StatusPosition;
 import com.mmo.config.TextScale;
 import com.mmo.config.FontType;
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigSection;
+import com.mmo.config.BadgeDisplay;
+import net.runelite.client.config.*;
+import net.runelite.client.plugins.statusbars.StatusBarsConfig;
 
 @ConfigGroup("MMOHud")
 public interface MmoHudConfig extends Config
 {
+
     @ConfigItem(
             keyName = "playerFrameScale",
-            name = "Player frame scale (%)",
-            description = "The overriding scale for the player portrait",
+            name = "Player Portrait Scale",
+            description = "Adjust the size of your player portrait and status bars (50-200%)",
             position = 0
     )
     default int playerFrameScale()
@@ -24,8 +24,8 @@ public interface MmoHudConfig extends Config
 
     @ConfigItem(
             keyName = "enemyFrameScale",
-            name = "Enemy frame scale (%)",
-            description = "The overriding scale for the enemy portrait",
+            name = "Enemy Portrait Scale",
+            description = "Adjust the size of enemy portraits and health bars (50-200%)",
             position = 1
     )
     default int enemyFrameScale()
@@ -34,29 +34,17 @@ public interface MmoHudConfig extends Config
     }
 
     @ConfigSection(
-            name = "Player head",
-            description = "Settings that control the player head",
+            name = "Player Portrait",
+            description = "Customize your player portrait appearance and status bars",
             position = 2,
-            closedByDefault = true
+            closedByDefault = false
     )
     String playerHeadSection = "playerHeadSections";
 
     @ConfigItem(
-            keyName = "playerRotation",
-            name = "Rotation",
-            description = "The player head rotation to use for portrait",
-            section = playerHeadSection,
-            position = 0
-    )
-    default int playerRotation()
-    {
-        return 0;
-    }
-
-    @ConfigItem(
             keyName = "playerStatusPosition",
-            name = "Status Position",
-            description = "Sets the position of the player's portrait status text.",
+            name = "Text Position",
+            description = "Where to display the status text (HP, Prayer, etc.) on the bars",
             section = playerHeadSection,
             position = 1
     )
@@ -67,8 +55,8 @@ public interface MmoHudConfig extends Config
 
     @ConfigItem(
             keyName = "playerIconPosition",
-            name = "Status Icon Position",
-            description = "Sets the position of the second portrait status icon.",
+            name = "Icon Position",
+            description = "Where to display the skill icons (heart, prayer, etc.) on the bars",
             section = playerHeadSection,
             position = 2
     )
@@ -79,8 +67,8 @@ public interface MmoHudConfig extends Config
 
     @ConfigItem(
             keyName = "playerTextScale",
-            name = "Text Scale",
-            description = "Sets the scale of the status text.",
+            name = "Text Size",
+            description = "Adjust the size of the status text on the bars",
             section = playerHeadSection,
             position = 3
     )
@@ -91,15 +79,77 @@ public interface MmoHudConfig extends Config
 
     @ConfigItem(
             keyName = "playerTextFont",
-            name = "Text Font",
-            description = "Sets the font type for the status text.",
+            name = "Text Style",
+            description = "Choose the font style for the status text",
             section = playerHeadSection,
             position = 4
     )
     default FontType playerTextFont()
     {
-        return FontType.RUNESCAPE;
+        return FontType.RUNESCAPE_BOLD;
     }
+
+    @ConfigItem(
+            keyName = "firstBarMode",
+            name = "Top Bar",
+            description = "What to display in the top status bar (HP, Prayer, Run Energy, etc.)",
+            section = playerHeadSection,
+            position = 5
+    )
+    default StatusBarsConfig.BarMode bar1()
+    {
+        return StatusBarsConfig.BarMode.HITPOINTS;
+    }
+
+    @ConfigItem(
+            keyName = "secondBarMode",
+            name = "Middle Bar",
+            description = "What to display in the middle status bar (HP, Prayer, Run Energy, etc.)",
+            section = playerHeadSection,
+            position = 6
+    )
+    default StatusBarsConfig.BarMode bar2()
+    {
+        return StatusBarsConfig.BarMode.PRAYER;
+    }
+
+    @ConfigItem(
+            keyName = "thirdBarMode",
+            name = "Bottom Bar",
+            description = "What to display in the bottom status bar (HP, Prayer, Run Energy, etc.)",
+            section = playerHeadSection,
+            position = 7
+    )
+    default StatusBarsConfig.BarMode bar3()
+    {
+        return StatusBarsConfig.BarMode.SPECIAL_ATTACK;
+    }
+
+    @ConfigItem(
+            keyName = "arcMode",
+            name = "Status Arc",
+            description = "Which stat to display in the circular arc around your portrait",
+            section = playerHeadSection,
+            position = 8
+    )
+    default StatusBarsConfig.BarMode archType()
+    {
+        return StatusBarsConfig.BarMode.RUN_ENERGY;
+    }
+
+    @ConfigItem(
+            keyName = "badgeDisplay",
+            name = "Badge Display",
+            description = "What to show in the small badge on your portrait",
+            section = playerHeadSection,
+            position = 9
+    )
+    default BadgeDisplay badgeDisplay()
+    {
+        return BadgeDisplay.COMBAT_LEVEL;
+    }
+
+
 
 
 }

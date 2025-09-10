@@ -156,7 +156,9 @@ public class TargetOverlay extends HeadOverlay {
             hasChatHead = false;
             return;
         }
-        headWidget.setModelId(-1);
+        if (headWidget != null) {
+            headWidget.setModelId(-1);
+        }
         hasChatHead = false;
         setHidden(true);
     }
