@@ -39,10 +39,10 @@ public class PlayerOverlay extends HeadOverlay {
 
     private static final Color PRAYER_COLOR = new Color(50, 200, 200, 175);
     private static final Color ACTIVE_PRAYER_COLOR = new Color(57, 255, 186, 225);
-    private static final Color HEALTH_COLOR = new Color(225, 35, 0, 125);
+    public static final Color HEALTH_COLOR = new Color(225, 35, 0, 125);
     private static final Color POISONED_COLOR = new Color(0, 145, 0, 150);
     private static final Color VENOMED_COLOR = new Color(0, 65, 0, 150);
-    private static final Color HEAL_COLOR = new Color(255, 112, 6, 150);
+    public static final Color HEAL_COLOR = new Color(255, 112, 6, 150);
     private static final Color PRAYER_HEAL_COLOR = new Color(57, 255, 186, 75);
     private static final Color ENERGY_HEAL_COLOR = new Color (199,  118, 0, 218);
     private static final Color RUN_STAMINA_COLOR = new Color(160, 124, 72, 255);
@@ -71,20 +71,11 @@ public class PlayerOverlay extends HeadOverlay {
     @Inject
     private SkillIconManager skillIconManager;
 
-    private BufferedImage barContainer;
-
-    private BufferedImage barBackground;
-
-    private BufferedImage headContainer;
-    private BufferedImage pipImage;
-
     private int dialogId = 5000;
 
     private final Image heartDisease;
     private final Image heartPoison;
     private final Image heartVenom;
-
-
 
     private final Map<StatusBarsConfig.BarMode, BarRenderer> barRenderers = new EnumMap<>(StatusBarsConfig.BarMode.class);
 
@@ -102,8 +93,6 @@ public class PlayerOverlay extends HeadOverlay {
         heartVenom = ImageUtil.loadImageResource(AlternateSprites.class, AlternateSprites.VENOM_HEART);
 
         initRenderers();
-
-        loadImage();
 
         setLayer(OverlayLayer.MANUAL);
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE);
@@ -280,11 +269,11 @@ public class PlayerOverlay extends HeadOverlay {
         renderConfiguredBar(config.bar2(), BarType.BAR2, 38, 5, graphics, scale);
         renderConfiguredBar(config.bar3(), BarType.BAR3, 70, 18, graphics, scale);
 
-        graphics.drawImage(headContainer, 0, 0, (int) (headContainer.getWidth() * scale), (int) (headContainer.getHeight() * scale), null);
+        graphics.drawImage(plugin.headContainer, 0, 0, (int) (plugin.headContainer.getWidth() * scale), (int) (plugin.headContainer.getHeight() * scale), null);
 
         drawHealArc(barRenderers.get(config.archType()), graphics, scale);
 
-        if (config.badgeDisplay() != BadgeDisplay.DISABLED && pipImage != null) {
+        if (config.badgeDisplay() != BadgeDisplay.DISABLED && plugin.pipImage != null) {
             drawBadge(graphics, scale);
         }
 
@@ -294,18 +283,7 @@ public class PlayerOverlay extends HeadOverlay {
     private void renderConfiguredBar(StatusBarsConfig.BarMode barMode, BarType type, int y, int offset, Graphics2D graphics, float scale) {
         BarRenderer bar = barRenderers.get(barMode);
         if (bar != null) {
-            bar.renderBar(config, graphics, type, 68, y, scale, barBackground, barContainer, offset);
-        }
-    }
-
-    public void loadImage() {
-        try {
-            headContainer = ImageUtil.loadImageResource(getClass(), "/images/head_container.png");
-            pipImage = ImageUtil.loadImageResource(getClass(), "/images/pip.png");
-            barContainer = ImageUtil.loadImageResource(getClass(),"/images/bar_outer.png");
-            barBackground = ImageUtil.loadImageResource(getClass(),"/images/bar_background.png");
-        } catch (NullPointerException e) {
-            log.error("Failed to load images", e);
+            bar.renderBar(config, graphics, type, 68, y, scale, plugin.barBackground, plugin.barContainer, offset);
         }
     }
 
@@ -382,12 +360,12 @@ public class PlayerOverlay extends HeadOverlay {
     }
 
     private void drawBadge(Graphics2D graphics, float scale) {
-        int pipWidth = (int) (pipImage.getWidth() * scale);
-        int pipHeight = (int) (pipImage.getHeight() * scale);
+        int pipWidth = (int) (plugin.pipImage.getWidth() * scale);
+        int pipHeight = (int) (plugin.pipImage.getHeight() * scale);
         int pipX = (int) (5 * scale) + 24;
-        int pipY = (int) ((headContainer.getHeight() - pipHeight - 5) * scale) + 10;
+        int pipY = (int) ((plugin.headContainer.getHeight() - pipHeight - 5) * scale) + 10;
 
-        graphics.drawImage(pipImage, pipX, pipY, pipWidth, pipHeight, null);
+        graphics.drawImage(plugin.pipImage, pipX, pipY, pipWidth, pipHeight, null);
 
         String displayText = getBadgeText();
         if (displayText == null) return;

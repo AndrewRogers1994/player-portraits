@@ -22,8 +22,10 @@ import net.runelite.client.plugins.combatlevel.CombatLevelConfig;
 import net.runelite.client.plugins.combatlevel.CombatLevelPlugin;
 import net.runelite.client.plugins.itemstats.ItemStatPlugin;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.ImageUtil;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
 import java.util.regex.Pattern;
 
@@ -70,6 +72,13 @@ public class MmoHud extends Plugin {
         return configManager.getConfig(MmoHudConfig.class);
     }
 
+    public BufferedImage barContainer;
+
+    public BufferedImage barBackground;
+
+    public BufferedImage headContainer;
+    public BufferedImage pipImage;
+
     private int previousHelment = -1;
     public String combatLevelStr;
 
@@ -85,11 +94,24 @@ public class MmoHud extends Plugin {
                 client.getRealSkillLevel(Skill.RANGED),
                 client.getRealSkillLevel(Skill.PRAYER)
         );
+        loadImage();
         combatLevelStr = DECIMAL_FORMAT.format(combatLevel);
 
         overlayManager.add(playerOverlay);
         overlayManager.add(targetOverlay);
     }
+
+    public void loadImage() {
+        try {
+            headContainer = ImageUtil.loadImageResource(getClass(), "/images/head_container.png");
+            pipImage = ImageUtil.loadImageResource(getClass(), "/images/pip.png");
+            barContainer = ImageUtil.loadImageResource(getClass(),"/images/bar_outer.png");
+            barBackground = ImageUtil.loadImageResource(getClass(),"/images/bar_background.png");
+        } catch (NullPointerException e) {
+            log.error("Failed to load images", e);
+        }
+    }
+
 
     @Subscribe
     public void onWidgetLoaded(WidgetLoaded event) {
