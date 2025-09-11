@@ -77,6 +77,13 @@ public class MmoHud extends Plugin {
     public BufferedImage barBackground;
 
     public BufferedImage headContainer;
+
+    public BufferedImage flippedBarContainer;
+
+    public BufferedImage flippedHeadContainer;
+
+    public BufferedImage flippedBarBackground;
+
     public BufferedImage pipImage;
 
     private int previousHelment = -1;
@@ -104,9 +111,12 @@ public class MmoHud extends Plugin {
     public void loadImage() {
         try {
             headContainer = ImageUtil.loadImageResource(getClass(), "/images/head_container.png");
+            flippedHeadContainer = ImageUtil.flipImage(headContainer, true, false);
             pipImage = ImageUtil.loadImageResource(getClass(), "/images/pip.png");
             barContainer = ImageUtil.loadImageResource(getClass(),"/images/bar_outer.png");
+            flippedBarContainer = ImageUtil.flipImage(barContainer, true, false);
             barBackground = ImageUtil.loadImageResource(getClass(),"/images/bar_background.png");
+            flippedBarBackground = ImageUtil.flipImage(barBackground, true,false);
         } catch (NullPointerException e) {
             log.error("Failed to load images", e);
         }

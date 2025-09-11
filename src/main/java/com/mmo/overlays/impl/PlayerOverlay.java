@@ -66,9 +66,6 @@ public class PlayerOverlay extends HeadOverlay {
     private ItemStatChangesService itemStatService;
 
     @Inject
-    private SpriteManager spriteManager;
-
-    @Inject
     private SkillIconManager skillIconManager;
 
     private int dialogId = 5000;
@@ -346,12 +343,6 @@ public class PlayerOverlay extends HeadOverlay {
         }
 
         return restoreValue;
-    }
-
-
-    private BufferedImage loadSprite(int spriteId)
-    {
-        return spriteManager.getSprite(spriteId, 0);
     }
 
     private boolean inLms()

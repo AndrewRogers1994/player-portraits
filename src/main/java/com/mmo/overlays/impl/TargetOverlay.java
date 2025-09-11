@@ -1,39 +1,37 @@
 package com.mmo.overlays.impl;
 
+import com.mmo.BarType;
+import com.mmo.MmoHud;
 import com.mmo.MmoHudConfig;
+import com.mmo.overlays.BarRenderer;
 import com.mmo.overlays.HeadOverlay;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetModelType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.NPCManager;
+import net.runelite.client.plugins.statusbars.StatusBarsConfig;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
-import net.runelite.client.util.ImageUtil;
 
 import javax.inject.Inject;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.awt.image.RescaleOp;
+import java.util.EnumMap;
+import java.util.Map;
 
 @Slf4j
 public class TargetOverlay extends HeadOverlay {
 
+    public static final Color HEALTH_COLOR = new Color(225, 35, 0, 125);
+
+    public static final Color HEAL_COLOR = new Color(255, 112, 6, 150);
+
     @Inject
     private ClientThread clientThread;
-
-    @Inject
-    private Client client;
-
-    private BufferedImage myImage;
-
-    private BufferedImage barTexture;
-
-    private Rectangle lastRender;
-
-    private boolean hasCalcedHealth = false;
 
     private boolean hasChatHead = false;
 
@@ -42,6 +40,8 @@ public class TargetOverlay extends HeadOverlay {
 
     public NPC target;
 
+    private final Map<StatusBarsConfig.BarMode, BarRenderer> barRenderers = new EnumMap<>(StatusBarsConfig.BarMode.class);
+
     @Inject
     private TargetOverlay() {
         isHidden = true;
@@ -49,9 +49,8 @@ public class TargetOverlay extends HeadOverlay {
         setMovable(true);
         setDragTargetable(true);
         setPriority(OverlayPriority.HIGHEST);
-        loadImages();
+        initRenderers();
 
-        lastRender = new Rectangle(0, 0, 200, 50);
         setLayer(OverlayLayer.MANUAL);
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE);
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX);
@@ -60,6 +59,9 @@ public class TargetOverlay extends HeadOverlay {
 
     @Inject
     private MmoHudConfig config;
+
+    @Inject
+    private MmoHud plugin;
 
     @Override
     public void setPreferredPosition(OverlayPosition preferredPosition) {
@@ -100,43 +102,17 @@ public class TargetOverlay extends HeadOverlay {
         float scale = (float) config.enemyFrameScale() / 100;
 
         if (target == null || isHidden) {
-            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
-        }
+              return new Dimension((int) (220 * scale), (int) (119 * scale));
+          }
 
-        int currentHealth = calculateHp();
+        renderConfiguredBar(StatusBarsConfig.BarMode.HITPOINTS, BarType.TARGET_BAR1, 38 ,   110 - 5, graphics, scale);
 
-        if (currentHealth == -1 && hasCalcedHealth) {
-            return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
-        }
+        graphics.drawImage(plugin.flippedHeadContainer, 32, 0, (int) (plugin.flippedHeadContainer.getWidth() * scale), (int) (plugin.flippedHeadContainer.getHeight() * scale), null);
+        drawBadge(graphics, scale);
 
-        drawPortrait(graphics, scale);
-        drawHpBar(graphics, scale);
-        drawCombatLevel(graphics, scale);
-        drawMissingModel(graphics, scale);
-
-        return new Dimension((int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale));
+        return new Dimension((int) (220 * scale), (int) (119 * scale));
     }
 
-
-    public void loadImages() {
-        try {
-
-            myImage = ImageUtil.loadImageResource(getClass(), "/images/hpbar_inverted.png");
-            barTexture = ImageUtil.loadImageResource(getClass(), "/images/hp_gradient_gs.png");
-
-            // Convert if not ARGB
-            if (barTexture.getType() != BufferedImage.TYPE_INT_ARGB) {
-                BufferedImage converted = new BufferedImage(
-                        barTexture.getWidth(), barTexture.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2 = converted.createGraphics();
-                g2.drawImage(barTexture, 0, 0, null);
-                g2.dispose();
-                barTexture = converted;
-            }
-        } catch (NullPointerException e) {
-            log.error("Failed to load images for TargetOverlay: hpbar_inverted.png, hp_gradient_gs.png", e);
-        }
-    }
 
     public void setTarget(NPC target) {
         if(!parentSet) {
@@ -144,7 +120,7 @@ public class TargetOverlay extends HeadOverlay {
         }
 
         this.target = target;
-        hasCalcedHealth = false;
+
         if(target != null) {
             setHidden(false);
             if(target.getComposition().getChatheadModels() != null) {
@@ -154,6 +130,8 @@ public class TargetOverlay extends HeadOverlay {
                 return;
             }
             hasChatHead = false;
+            barRenderers.clear();
+            initRenderers();
             return;
         }
         if (headWidget != null) {
@@ -163,99 +141,62 @@ public class TargetOverlay extends HeadOverlay {
         setHidden(true);
     }
 
-    private void drawPortrait(Graphics2D graphics, float scale) {
-        if (myImage == null)
-            return;
-
-        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-
-        if (headWidget == null || headWidget.isHidden()) {
-
-            if (lastRender != null) {
-                graphics.drawImage(myImage, lastRender.x, lastRender.y, (int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale), null);
-            }
-
-            return;
-        }
-
-        graphics.drawImage(myImage, 0, 0, (int) (myImage.getWidth() * scale), (int) (myImage.getHeight() * scale), null);
-
+    private void initRenderers()
+    {
+        barRenderers.put(StatusBarsConfig.BarMode.HITPOINTS, new BarRenderer(
+                () ->
+                {
+                    if(target != null)
+                    {
+                        return npcManager.getHealth(target.getId());
+                    }
+                    return -1;
+                },
+                this::calculateHp,
+                () -> 0,
+                () -> HEALTH_COLOR,
+                () -> HEAL_COLOR,
+                () -> loadSprite(SpriteID.OrbIcon.HITPOINTS)
+        ));
     }
 
-    private void drawHpBar(Graphics2D graphics, float scale) {
-        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-
-        int maxHealth = npcManager.getHealth(target.getId());
-
-
-        int currentHealth = calculateHp();
-
-
-        if (currentHealth == -1) {
-            currentHealth = maxHealth;
+    private void renderConfiguredBar(StatusBarsConfig.BarMode barMode, BarType type, int y, int offset, Graphics2D graphics, float scale) {
+        BarRenderer bar = barRenderers.get(barMode);
+        if (bar != null) {
+            bar.renderBar(config, graphics, type, 0, y, scale, plugin.flippedBarBackground, plugin.flippedBarContainer, offset);
         }
-
-        int fullWidth = (int) (128 * scale);           // fixed width
-        int height = (int) (29 * scale);               // fixed height
-        double percentRemaining = currentHealth / (double) maxHealth;
-
-        int barWidth = (int) (fullWidth * percentRemaining);
-
-        // RGBA multipliers (1f = no change)
-        // e.g. (1f, 0.5f, 0.5f, 1f) will make the texture more red
-        float[] scales = {1f, 0f, 0f, 1f};
-        float[] offsets = {0f, 0f, 0f, 0f};
-
-        RescaleOp tint = new RescaleOp(scales, offsets, null);
-        BufferedImage tinted = tint.filter(barTexture, null);
-
-        graphics.drawImage(tinted, (int) (7 * scale), (int) (36 * scale), barWidth, height, null);
-
-
-        graphics.setColor(new Color(146, 17, 5));
-        //  graphics.fillRoundRect(6, 36, barWidth, 28, 5, 5);
-
-
-        Font font = new Font("SansSerif", Font.PLAIN, (int) (18 * scale));
-        graphics.setFont(font);
-
-        if (currentHealth <= 0) {
-            // Draw shadow / outline
-            graphics.setColor(new Color(100, 10, 4));
-            graphics.drawString("100%", (int) (40 * scale) + 2, (int) (57 * scale) + 2);
-
-            // Draw main text
-            graphics.setColor(new Color(238, 209, 149));
-            graphics.drawString("100%", (int) (40 * scale), (int) (57 * scale));
-            return;
-        }
-
-
-        // Draw shadow / outline
-        graphics.setColor(new Color(100, 10, 4));
-        graphics.drawString(currentHealth + "/" + maxHealth, (int) (40 * scale) + 2, (int) (57 * scale) + 2);
-
-        // Draw main text
-        graphics.setColor(new Color(238, 209, 149));
-        graphics.drawString(currentHealth + "/" + maxHealth, (int) (40 * scale), (int) (57 * scale));
-
     }
 
-    private void drawCombatLevel(Graphics2D graphics, float scale) {
-        int combatLevel = target.getCombatLevel();
+    private void drawBadge(Graphics2D graphics, float scale) {
+        int pipWidth = (int) (plugin.pipImage.getWidth() * scale);
+        int pipHeight = (int) (plugin.pipImage.getHeight() * scale);
+        int pipX = (int) (5 * scale) - 42 + plugin.headContainer.getWidth();
+        int pipY = (int) ((plugin.headContainer.getHeight() - pipHeight - 5) * scale) + 10;
 
-        Font font = new Font("SansSerif", Font.PLAIN, 10); // 24pt font
+        graphics.drawImage(plugin.pipImage, pipX, pipY, pipWidth, pipHeight, null);
 
-        graphics.setFont(font);
-        // Draw shadow / outline
-        graphics.setColor(new Color(238, 209, 149));
-        graphics.drawString("" + combatLevel, (int) (175 * scale), (int) (97 * scale));  // offset by 1-2 pixels
+        String displayText = "" + target.getCombatLevel();
+        if (displayText == null) return;
+
+        Font pipFont = FontManager.getDefaultFont().deriveFont(17 * scale);
+        if (displayText.contains(".")) {
+            pipFont = FontManager.getDefaultFont().deriveFont(10 * scale);
+        }
+        graphics.setFont(pipFont);
+        graphics.setColor(new Color(255, 255, 255));
+
+        FontMetrics metrics = graphics.getFontMetrics();
+        int textWidth = metrics.stringWidth(displayText);
+        int textHeight = metrics.getHeight();
+
+        int margin = displayText.length() <= 2 ? 2 : 0;
+        int textX = pipX + (pipWidth - textWidth) / 2 + margin;
+        int textY = pipY + (pipHeight - textHeight) / 2 + metrics.getAscent();
+
+        graphics.setColor(new Color(0, 0, 0, 128));
+        graphics.drawString(displayText, textX + 1, textY + 1);
+        graphics.setColor(new Color(255, 255, 255));
+        graphics.drawString(displayText, textX, textY);
     }
 
     private void drawMissingModel(Graphics2D graphics, float scale) {
@@ -287,7 +228,7 @@ public class TargetOverlay extends HeadOverlay {
 
             float scale = ((float) config.enemyFrameScale() / 100);
 
-            headWidget.setOriginalX((int) (loc.x + 164 * scale));
+            headWidget.setOriginalX((int) (loc.x + (plugin.headContainer.getWidth() * scale) - 32));
             headWidget.setOriginalY((int) (loc.y + 32 * scale));
             headWidget.setOriginalWidth((int) (32 * scale));
             headWidget.setOriginalHeight((int) (32 * scale));
@@ -299,6 +240,9 @@ public class TargetOverlay extends HeadOverlay {
     }
 
     private int calculateHp() {
+        if(target == null) {
+            return -1;
+        }
 
         int lastMaxHealth = npcManager.getHealth(target.getId());
         int lastRatio = target.getHealthRatio(); // current health proportion
@@ -324,7 +268,6 @@ public class TargetOverlay extends HeadOverlay {
                 maxHealth = lastMaxHealth;
             }
             // Take the average of min and max possible healths
-            hasCalcedHealth = true;
             return (minHealth + maxHealth + 1) / 2;
         }
 

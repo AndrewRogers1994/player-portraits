@@ -1,5 +1,6 @@
 package com.mmo.overlays;
 
+import com.mmo.BarDirection;
 import com.mmo.MmoHudConfig;
 import com.mmo.BarType;
 import com.mmo.config.FontType;
@@ -7,6 +8,7 @@ import com.mmo.config.StatusPosition;
 import com.mmo.config.TextScale;
 import lombok.RequiredArgsConstructor;
 import net.runelite.client.ui.FontManager;
+import net.runelite.client.util.ImageUtil;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -130,7 +132,7 @@ public class BarRenderer {
 
         int scaledBarWidth = (int) (151 * scale);
         int scaledBarHeight = (int) (30 * scale);
-        
+
         graphics.drawImage(barBackground, barRenderX, barRenderY, scaledBarWidth, scaledBarHeight, null);
 
         if (healValue > 0) {
