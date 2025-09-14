@@ -27,6 +27,8 @@ import net.runelite.client.util.ImageUtil;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.regex.Pattern;
 
 @PluginDescriptor(
@@ -46,6 +48,10 @@ public class MmoHud extends Plugin {
     private static final int MIN_COMBAT_LEVEL = 3;
     private static final String COMBAT_LEVEL_SECTION_TEXT = "Combat Level:";
     private static final Color CHARACTER_SUMMARY_GREEN = Color.decode("#0dc10d");
+
+    private static final Duration TARGET_DESELECT_TIME = Duration.ofSeconds(5);
+
+    private Instant lastTime;
 
     @Inject
     private Client client;
@@ -154,6 +160,7 @@ public class MmoHud extends Plugin {
 
     @Override
     protected void shutDown() throws Exception {
+        lastTime = null;
         overlayManager.remove(playerOverlay);
     }
 
@@ -205,19 +212,35 @@ public class MmoHud extends Plugin {
     }
 
     @Subscribe
-    public void onGameTick(GameTick event) {
-        Actor opponent = client.getLocalPlayer().getInteracting();
-        if (opponent != null) {
-            if (opponent instanceof NPC) {
-                NPC npc = (NPC) opponent;
-                if (npc.getCombatLevel() > 0) {
-                    targetOverlay.setTarget(npc);
-                }
-            }
-        } else {
-          targetOverlay.clearTarget();
+    public void onInteractingChanged(InteractingChanged event)
+    {
+        if (event.getSource() != client.getLocalPlayer())
+        {
+            return;
         }
 
+        Actor opponent = event.getTarget();
+
+        if (opponent == null)
+        {
+            lastTime = Instant.now();
+            return;
+        }
+
+        if (opponent instanceof NPC) {
+            NPC npc = (NPC) opponent;
+            if (npc.getCombatLevel() > 0) {
+                targetOverlay.setTarget(npc);
+            }
+        }
     }
 
+    @Subscribe
+    public void onGameTick(GameTick event) {
+        if (client.getLocalPlayer().getInteracting() == null) {
+            if (Duration.between(lastTime, Instant.now()).compareTo(TARGET_DESELECT_TIME) > 0) {
+                targetOverlay.clearTarget();
+            }
+        }
+    }
 }
