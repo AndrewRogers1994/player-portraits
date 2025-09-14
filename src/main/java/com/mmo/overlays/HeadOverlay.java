@@ -14,7 +14,7 @@ public abstract class HeadOverlay extends Overlay {
     @Inject
     private SpriteManager spriteManager;
     @Inject
-    private Client client;
+    protected Client client;
     protected int currentChildIndex;
     protected int currentParent;
     protected boolean parentSet = false;

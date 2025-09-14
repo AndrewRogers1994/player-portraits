@@ -20,6 +20,8 @@ import net.runelite.client.ui.overlay.OverlayPriority;
 
 import javax.inject.Inject;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -38,7 +40,26 @@ public class TargetOverlay extends HeadOverlay {
     @Inject
     NPCManager npcManager;
 
+    @Inject
+    private MmoHudConfig config;
+
+    @Inject
+    private MmoHud plugin;
+
     public NPC target;
+
+    public BufferedImage flippedBarContainer;
+
+    public BufferedImage flippedHeadContainer;
+
+    public BufferedImage flippedBarBackground;
+
+    private Model npcModel;
+
+    private float minX;
+    private float maxX;
+    private float minY;
+    private float maxY;
 
     private final Map<StatusBarsConfig.BarMode, BarRenderer> barRenderers = new EnumMap<>(StatusBarsConfig.BarMode.class);
 
@@ -56,12 +77,6 @@ public class TargetOverlay extends HeadOverlay {
         drawAfterLayer(WidgetInfo.RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX);
         drawAfterLayer(WidgetInfo.FIXED_VIEWPORT);
     }
-
-    @Inject
-    private MmoHudConfig config;
-
-    @Inject
-    private MmoHud plugin;
 
     @Override
     public void setPreferredPosition(OverlayPosition preferredPosition) {
@@ -107,34 +122,76 @@ public class TargetOverlay extends HeadOverlay {
 
         renderConfiguredBar(StatusBarsConfig.BarMode.HITPOINTS, BarType.TARGET_BAR1, 38 ,   110 - 5, graphics, scale);
 
-        graphics.drawImage(plugin.flippedHeadContainer, 32, 0, (int) (plugin.flippedHeadContainer.getWidth() * scale), (int) (plugin.flippedHeadContainer.getHeight() * scale), null);
+        graphics.drawImage(flippedHeadContainer, 32, 0, (int) (flippedHeadContainer.getWidth() * scale), (int) (flippedHeadContainer.getHeight() * scale), null);
         drawBadge(graphics, scale);
+        drawFullModel(scale);
 
         return new Dimension((int) (220 * scale), (int) (119 * scale));
     }
 
 
     public void setTarget(NPC target) {
-        if(!parentSet) {
+        if (!parentSet || target == null) {
+            return;
+        }
+
+        if(this.target == target) {
             return;
         }
 
         this.target = target;
 
-        if(target != null) {
-            setHidden(false);
-            if(target.getComposition().getChatheadModels() != null) {
-                hasChatHead = true;
-                headWidget.setModelId(target.getId());
-                drawHeadWidget();
-                return;
+        setHidden(false);
+        if (target.getComposition().getChatheadModels() != null) {
+            hasChatHead = true;
+            headWidget.setModelId(target.getId());
+            drawHeadWidget();
+            return;
+        } else {
+            //npcModel = target.getModel();
+            var modelids = target.getComposition().getModels();
+            var modelDatas = new ArrayList<ModelData>();
+            for(var i = 0; i < modelids.length; i++) {
+                modelDatas.add(client.loadModelData(modelids[i]));
             }
-            hasChatHead = false;
-            barRenderers.clear();
-            initRenderers();
+            var mergedModel = client.mergeModels(modelDatas.toArray(new ModelData[0]));
+            npcModel = mergedModel.light();
+
+            // --- Compute model bounds ---
+            float modelMinX = Float.MAX_VALUE;
+            float modelMaxX = -Float.MAX_VALUE;
+            for (float x : npcModel.getVerticesX()) {
+                if (x < modelMinX) modelMinX = x;
+                if (x > modelMaxX) modelMaxX = x;
+            }
+
+            float modelMinY = Float.MAX_VALUE;
+            float modelMaxY = -Float.MAX_VALUE;
+            for (float y : npcModel.getVerticesY()) {
+                if (y < modelMinY) modelMinY = y;
+                if (y > modelMaxY) modelMaxY = y;
+            }
+
+            minX = modelMinX;
+            minY = modelMinY;
+            maxX = modelMaxX;
+            maxY = modelMaxY;
+
+        }
+        hasChatHead = false;
+        barRenderers.clear();
+        initRenderers();
+
+    }
+
+    public void clearTarget() {
+        if(!parentSet) {
             return;
         }
-        if (headWidget != null) {
+
+        this.target = null;
+
+        if(headWidget != null) {
             headWidget.setModelId(-1);
         }
         hasChatHead = false;
@@ -163,7 +220,7 @@ public class TargetOverlay extends HeadOverlay {
     private void renderConfiguredBar(StatusBarsConfig.BarMode barMode, BarType type, int y, int offset, Graphics2D graphics, float scale) {
         BarRenderer bar = barRenderers.get(barMode);
         if (bar != null) {
-            bar.renderBar(config, graphics, type, 0, y, scale, plugin.flippedBarBackground, plugin.flippedBarContainer, offset);
+            bar.renderBar(config, graphics, type, 0, y, scale, flippedBarBackground, flippedBarContainer, offset);
         }
     }
 
@@ -197,6 +254,67 @@ public class TargetOverlay extends HeadOverlay {
         graphics.drawString(displayText, textX + 1, textY + 1);
         graphics.setColor(new Color(255, 255, 255));
         graphics.drawString(displayText, textX, textY);
+    }
+
+    private void drawFullModel(float scale) {
+
+        int drawHeight = (int) (flippedHeadContainer.getHeight() * scale) - 39;
+        int drawWidth = (int) (flippedHeadContainer.getWidth() * scale) - 95;
+
+        int xOffset = 126;
+        int yOffset = 5;
+
+        Rasterizer r = client.getRasterizer();
+
+        float width = maxX - minX;
+        float height = maxY - minY;
+
+        r.setDrawRegion(
+                getPreferredLocation().x + xOffset,
+                getPreferredLocation().y + yOffset,
+                getPreferredLocation().x + xOffset + drawWidth,
+                getPreferredLocation().y + yOffset + drawHeight);
+        r.resetRasterClipping();
+
+
+        int faceForwardRotation = 1600;
+
+        if (height > width) {
+            int referenceHeight = 462;
+            int referenceZoom = 1800;
+            float heightScale = referenceHeight / height;
+
+            if (referenceHeight > height) {
+                heightScale = height / referenceHeight;
+            }
+
+            npcModel.drawFrustum(
+                    faceForwardRotation,
+                    0,
+                    0,
+                    (int) (height / heightScale) - 5,
+                    0,
+                    (int) (referenceZoom * heightScale),
+                    0);
+        } else {
+            int referenceWidth = 186;
+            int referenceZoom = 1100;
+
+            float widthScale = referenceWidth / width;
+
+            if (referenceWidth > width) {
+                widthScale = widthScale / referenceWidth;
+            }
+
+            npcModel.drawFrustum(
+                    faceForwardRotation,
+                    0,
+                    0,
+                    (int) 500,
+                    0,
+                    (int) (referenceZoom / widthScale),
+                    0);
+        }
     }
 
     private void drawMissingModel(Graphics2D graphics, float scale) {
